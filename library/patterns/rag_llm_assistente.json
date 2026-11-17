@@ -115,7 +115,7 @@
         "stage": "consulta",
         "tools": [
           "Ollama",
-          "Claude"
+          "API de LLM"
         ]
       },
       {

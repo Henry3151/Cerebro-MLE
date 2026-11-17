@@ -126,7 +126,7 @@ def cmd_repos(args) -> int:
     return 0
 
 
-def claude_config_path() -> Path:
+def desktop_config_path() -> Path:
     if sys.platform.startswith("win"):
         return Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "Claude" / "claude_desktop_config.json"
     if sys.platform == "darwin":
@@ -134,14 +134,14 @@ def claude_config_path() -> Path:
     return Path.home() / ".config/Claude/claude_desktop_config.json"
 
 
-def cmd_install_claude(args) -> int:
+def cmd_install_mcp(args) -> int:
     root = load_settings().root
     entry = {
         "command": sys.executable,
         "args": ["-m", "cerebro.mcp_server"],
         "env": {"CEREBRO_ROOT": str(root), "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"},
     }
-    path = Path(args.config) if args.config else claude_config_path()
+    path = Path(args.config) if args.config else desktop_config_path()
     config = {}
     if path.exists():
         try:
@@ -160,7 +160,7 @@ def cmd_install_claude(args) -> int:
         _print(f"Backup da configuração anterior: {backup}")
     path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
     _print(f"Cérebro MLE registrado em {path}")
-    _print("Feche o Claude Desktop por completo (inclusive na bandeja do sistema) e abra de novo.")
+    _print("Feche o assistente de IA por completo (inclusive na bandeja do sistema) e abra de novo.")
     return 0
 
 
@@ -202,13 +202,13 @@ def main(argv: list[str] | None = None) -> int:
     a = sub.add_parser("repos", help="clona ou atualiza os repositórios do config.yaml")
     a.set_defaults(fn=cmd_repos)
 
-    a = sub.add_parser("serve", help="inicia o servidor MCP (usado pelo Claude Desktop)")
+    a = sub.add_parser("serve", help="inicia o servidor MCP (usado pelo assistente de IA)")
     a.set_defaults(fn=cmd_serve)
 
-    a = sub.add_parser("install-claude", help="registra o Cérebro no Claude Desktop")
+    a = sub.add_parser("install-mcp", help="registra o Cérebro no assistente de IA desktop")
     a.add_argument("--dry-run", action="store_true", help="só mostra a configuração, sem gravar")
-    a.add_argument("--config", help="caminho alternativo do claude_desktop_config.json")
-    a.set_defaults(fn=cmd_install_claude)
+    a.add_argument("--config", help="caminho alternativo do arquivo de configuração MCP do app")
+    a.set_defaults(fn=cmd_install_mcp)
 
     args = p.parse_args(argv)
     return args.fn(args)

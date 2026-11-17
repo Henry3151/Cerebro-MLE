@@ -1,6 +1,6 @@
-"""Servidor MCP do Cérebro MLE para o Claude Desktop.
+"""Servidor MCP do Cérebro MLE para assistentes de IA compatíveis.
 
-O Claude (com a assinatura do usuário) faz o raciocínio; o Cérebro guarda o conhecimento,
+O LLM do assistente (com a assinatura do usuário) faz o raciocínio; o Cérebro guarda o conhecimento,
 valida a arquitetura e desenha o mapa. Nenhuma API paga é usada.
 """
 from __future__ import annotations

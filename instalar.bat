@@ -37,12 +37,12 @@ echo [4/5] Indexando aulas, notas e repositorios (pode levar alguns minutos)...
 .venv\Scripts\cerebro ingest || goto erro
 .venv\Scripts\cerebro patterns render >nul
 
-echo [5/5] Conectando ao Claude Desktop...
-.venv\Scripts\cerebro install-claude || goto erro
+echo [5/5] Conectando ao assistente de IA...
+.venv\Scripts\cerebro install-mcp || goto erro
 
 echo.
-echo Pronto! Feche o Claude Desktop por completo (tambem na bandeja do sistema) e abra de novo.
-echo Depois, no Claude, peca por exemplo:
+echo Pronto! Feche o assistente de IA por completo (tambem na bandeja do sistema) e abra de novo.
+echo Depois, no assistente, peca por exemplo:
 echo   "Cerebro, monte a arquitetura para detectar fraude em tempo real"
 echo.
 pause
@@ -50,6 +50,6 @@ exit /b 0
 
 :erro
 echo.
-echo Algo deu errado. Copie a mensagem acima e mande para o Claude.
+echo Algo deu errado. Copie a mensagem acima e mande para o suporte do projeto.
 pause
 exit /b 1

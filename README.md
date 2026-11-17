@@ -2,14 +2,14 @@
 
 **Do problema de Machine Learning Engineering ao mapa de arquitetura, com roteiro de desenvolvimento e fontes.**
 
-O Cérebro MLE é uma base de conhecimento local (RAG) conectada ao Claude Desktop por MCP. Você descreve um
+O Cérebro MLE é uma base de conhecimento local (RAG) conectada a um assistente de IA desktop por MCP. Você descreve um
 problema ("preciso detectar fraude em tempo real", "como monitorar meu modelo de crédito") e recebe:
 
 1. **O mapa da arquitetura**, com etapas agrupadas, componentes e fluxo, desenhado de forma determinística (sempre válido);
 2. **Um roteiro em passos**, com a ordem de construção, o porquê de cada passo e o critério de pronto;
 3. **As fontes**: em qual aula, fase e página, ou em qual projeto, cada decisão se apoia.
 
-O raciocínio é feito pelo Claude, com a sua assinatura e sem custo de API. O conhecimento, a validação e o desenho
+O raciocínio é feito pelo assistente de IA, com a sua assinatura e sem custo de API. O conhecimento, a validação e o desenho
 ficam no seu computador.
 
 ```mermaid
@@ -23,8 +23,8 @@ flowchart LR
         c_padroes[("Biblioteca de<br/>arquiteturas modelo")]
     end
     subgraph s_rac["2 · Raciocínio"]
-        c_user(["Você, no Claude Desktop"])
-        c_claude[["Claude"]]
+        c_user(["Você, no assistente de IA"])
+        c_llm[["LLM"]]
         c_mcp("Servidor MCP<br/>Cérebro")
     end
     subgraph s_saida["3 · Desenho"]
@@ -36,20 +36,20 @@ flowchart LR
     c_repos --> c_ingest
     c_notas --> c_ingest
     c_ingest --> c_indice
-    c_user --> c_claude
-    c_claude <-->|"ferramentas"| c_mcp
+    c_user --> c_llm
+    c_llm <-->|"ferramentas"| c_mcp
     c_indice --> c_mcp
     c_padroes --> c_mcp
     c_mcp --> c_valida
-    c_valida -.->|"erros: corrigir"| c_claude
+    c_valida -.->|"erros: corrigir"| c_llm
     c_valida -->|"ok"| c_render
     c_render --> c_mapa
 ```
 
 ## Por que funciona bem
 
-- **O LLM não desenha.** O Claude decide a arquitetura e devolve JSON; o Python valida (ids, etapas, ligações,
-  roteiro) e gera o Mermaid. Se houver erro, o Claude recebe a lista exata e corrige.
+- **O LLM não desenha.** O LLM decide a arquitetura e devolve JSON; o Python valida (ids, etapas, ligações,
+  roteiro) e gera o Mermaid. Se houver erro, o LLM recebe a lista exata e corrige.
 - **Exemplos reais.** A biblioteca traz 9 arquiteturas modelo validadas, 3 delas tiradas dos projetos do autor
   (DriftGuard, Triagem de Laudos, Churn). Com bons exemplos, os mapas novos saem consistentes.
 - **Fontes rastreáveis.** Cada trecho buscado ganha uma etiqueta (`F-3fa2c1`) que o roteiro cita; o mapa lista
@@ -58,28 +58,28 @@ flowchart LR
 
 ## Instalação (Windows)
 
-Pré-requisitos: Python 3.10+, Git e o app Claude Desktop.
+Pré-requisitos: Python 3.10+, Git e um app desktop de assistente de IA com suporte a MCP.
 
 1. Coloque os PDFs das aulas em `data/aulas/<fase>/<submódulo>/` (veja `data/aulas/LEIA-ME.md`).
 2. Dê dois cliques em **`instalar.bat`**. Ele cria o ambiente, baixa seus repositórios, indexa tudo, gera os
-   mapas de exemplo e registra o Cérebro no Claude Desktop.
-3. Feche o Claude Desktop por completo (inclusive na bandeja do sistema) e abra de novo.
+   mapas de exemplo e registra o Cérebro no assistente de IA.
+3. Feche o assistente de IA por completo (inclusive na bandeja do sistema) e abra de novo.
 
-No Claude, peça por exemplo:
+No assistente, peça por exemplo:
 
 > Cérebro, monte a arquitetura para detectar fraude em pagamentos em tempo real, com retreino semanal.
 
-Você também pode usar o prompt **arquitetar**, no menu de prompts do Claude, que já traz o fluxo completo.
+Você também pode usar o prompt **arquitetar**, no menu de prompts do assistente, que já traz o fluxo completo.
 
 ## Uso no dia a dia
 
 | Quero... | Faça |
 |---|---|
-| Adicionar uma fase nova da pós | Coloque os PDFs em `data/aulas/fase5_.../` e rode `atualizar_base.bat` (ou peça ao Claude: "reindexe a base") |
+| Adicionar uma fase nova da pós | Coloque os PDFs em `data/aulas/fase5_.../` e rode `atualizar_base.bat` (ou peça ao assistente: "reindexe a base") |
 | Ver todos os mapas gerados | `abrir_mapas.bat` |
 | Testar a busca no terminal | `.venv\Scripts\cerebro search drift PSI monitoramento` |
 | Ver o que está indexado | `.venv\Scripts\cerebro status` |
-| Guardar um mapa aprovado como padrão | Peça ao Claude: "salve essa arquitetura como padrão" |
+| Guardar um mapa aprovado como padrão | Peça ao assistente: "salve essa arquitetura como padrão" |
 | Desenhar um JSON manualmente | `.venv\Scripts\cerebro render arquivo.json --abrir` |
 
 ## Ferramentas MCP
@@ -113,7 +113,7 @@ cerebro-mle/
 │   ├── knowledge/           # leitura, divisão em trechos, BM25 e índice incremental
 │   ├── patterns.py          # biblioteca de padrões
 │   ├── brain.py             # camada de serviço
-│   ├── mcp_server.py        # servidor MCP para o Claude Desktop
+│   ├── mcp_server.py        # servidor MCP para o assistente de IA
 │   └── cli.py               # linha de comando
 └── tests/                   # 22 testes, incluindo um cliente MCP real
 ```

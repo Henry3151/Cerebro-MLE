@@ -1,4 +1,4 @@
-"""Teste ponta a ponta: um cliente MCP real conversa com o servidor por stdio, como o Claude Desktop faz."""
+"""Teste ponta a ponta: um cliente MCP real conversa com o servidor por stdio, como um assistente de IA desktop faz."""
 import asyncio
 import json
 import os

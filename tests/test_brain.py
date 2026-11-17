@@ -56,11 +56,11 @@ def test_schema_text_mentions_kinds_and_limits():
     assert "datastore" in text and "roadmap" in text and "Schema JSON" in text
 
 
-def test_install_claude_merges_config_and_keeps_backup(tmp_path, project, monkeypatch):
+def test_install_mcp_merges_config_and_keeps_backup(tmp_path, project, monkeypatch):
     monkeypatch.chdir(project)
-    cfg = tmp_path / "claude_desktop_config.json"
+    cfg = tmp_path / "mcp_config.json"
     cfg.write_text(json.dumps({"mcpServers": {"outro": {"command": "x"}}, "tema": "escuro"}), encoding="utf-8")
-    assert cli_main(["install-claude", "--config", str(cfg)]) == 0
+    assert cli_main(["install-mcp", "--config", str(cfg)]) == 0
     data = json.loads(cfg.read_text(encoding="utf-8"))
     assert set(data["mcpServers"]) == {"outro", "cerebro-mle"} and data["tema"] == "escuro"
     entry = data["mcpServers"]["cerebro-mle"]

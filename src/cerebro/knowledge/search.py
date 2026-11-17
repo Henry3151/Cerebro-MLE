@@ -1,7 +1,7 @@
 """Busca BM25 em português, sem dependências externas.
 
 Por que BM25 e não embeddings: roda instantaneamente em qualquer PC, não precisa de modelo e funciona
-muito bem com termos técnicos (Airflow, PSI, Feature Store). Quem interpreta a pergunta é o Claude,
+muito bem com termos técnicos (Airflow, PSI, Feature Store). Quem interpreta a pergunta é o LLM,
 que pode reformular a busca com outros termos.
 """
 from __future__ import annotations

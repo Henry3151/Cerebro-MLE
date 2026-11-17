@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cerebro-mle"
 version = "0.1.0"
-description = "Cérebro MLE: base de conhecimento local (RAG) conectada ao Claude que transforma um problema de ML Engineering em mapa de arquitetura e roteiro."
+description = "Cérebro MLE: base de conhecimento local (RAG) conectada a um assistente de IA via MCP que transforma um problema de ML Engineering em mapa de arquitetura e roteiro."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
