@@ -1,0 +1,319 @@
+{
+  "id": "fraude_tempo_real_streaming",
+  "name": "Detecção de fraude em tempo real com streaming e Feature Store",
+  "when_to_use": "Decidir em milissegundos sobre um evento (transação, login, pedido) usando features calculadas em janelas de tempo, com retreino em lote a partir de rótulos que chegam depois (chargeback).",
+  "tags": [
+    "fraude",
+    "tempo real",
+    "streaming",
+    "kafka",
+    "flink",
+    "spark streaming",
+    "feature store",
+    "redis",
+    "baixa latência",
+    "anomalia",
+    "desbalanceamento",
+    "rótulo atrasado"
+  ],
+  "origin": "autoral: combina o Fraud Detection do Fintech-Risk-Framework com os padrões de streaming da grade",
+  "phases": [
+    "fase1_produtizacao",
+    "fase2_big_data",
+    "fase4_monitoring_security"
+  ],
+  "architecture": {
+    "title": "Antifraude em tempo real",
+    "summary": "Eventos entram por Kafka, features em janela são calculadas em streaming e servidas por uma Feature Store online; o modelo decide em poucos milissegundos e aprende com os chargebacks.",
+    "stages": [
+      {
+        "id": "ingestao",
+        "title": "Ingestão em streaming"
+      },
+      {
+        "id": "features",
+        "title": "Features"
+      },
+      {
+        "id": "decisao",
+        "title": "Decisão em tempo real"
+      },
+      {
+        "id": "aprendizado",
+        "title": "Aprendizado em lote"
+      },
+      {
+        "id": "monitoramento",
+        "title": "Monitoramento"
+      }
+    ],
+    "components": [
+      {
+        "id": "eventos",
+        "label": "Transações",
+        "kind": "external",
+        "stage": "ingestao",
+        "tools": []
+      },
+      {
+        "id": "kafka",
+        "label": "Kafka\ntópico de eventos",
+        "kind": "datastore",
+        "stage": "ingestao",
+        "tools": [
+          "Apache Kafka",
+          "AWS MSK"
+        ]
+      },
+      {
+        "id": "stream",
+        "label": "Features em janela\n1 min · 1 h · 24 h",
+        "kind": "process",
+        "stage": "features",
+        "tools": [
+          "Apache Flink",
+          "Spark Structured Streaming"
+        ]
+      },
+      {
+        "id": "online",
+        "label": "Feature Store online",
+        "kind": "datastore",
+        "stage": "features",
+        "tools": [
+          "Redis",
+          "Feast"
+        ]
+      },
+      {
+        "id": "offline",
+        "label": "Feature Store offline",
+        "kind": "datastore",
+        "stage": "features",
+        "tools": [
+          "S3",
+          "Delta Lake"
+        ]
+      },
+      {
+        "id": "api",
+        "label": "API de score\n< 50 ms",
+        "kind": "service",
+        "stage": "decisao",
+        "tools": [
+          "FastAPI"
+        ]
+      },
+      {
+        "id": "modelo",
+        "label": "Modelo de fraude\nautoencoder + boosting",
+        "kind": "model",
+        "stage": "decisao",
+        "tools": [
+          "XGBoost",
+          "PyTorch"
+        ]
+      },
+      {
+        "id": "regra",
+        "label": "Decisão\naprovar · revisar · negar",
+        "kind": "decision",
+        "stage": "decisao",
+        "tools": []
+      },
+      {
+        "id": "rotulos",
+        "label": "Rótulos de chargeback\natrasados",
+        "kind": "datastore",
+        "stage": "aprendizado",
+        "tools": []
+      },
+      {
+        "id": "treino",
+        "label": "Treino em lote\npoint-in-time join",
+        "kind": "model",
+        "stage": "aprendizado",
+        "tools": [
+          "Spark",
+          "MLflow"
+        ]
+      },
+      {
+        "id": "registry",
+        "label": "Model Registry",
+        "kind": "datastore",
+        "stage": "aprendizado",
+        "tools": [
+          "MLflow"
+        ]
+      },
+      {
+        "id": "monitor",
+        "label": "Latência · drift\ntaxa de bloqueio",
+        "kind": "monitor",
+        "stage": "monitoramento",
+        "tools": [
+          "Prometheus",
+          "Evidently"
+        ]
+      },
+      {
+        "id": "alertas",
+        "label": "Alertas",
+        "kind": "monitor",
+        "stage": "monitoramento",
+        "tools": [
+          "Grafana"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "eventos",
+        "target": "kafka",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "kafka",
+        "target": "stream",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "stream",
+        "target": "online",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "stream",
+        "target": "offline",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "eventos",
+        "target": "api",
+        "label": "requisição",
+        "dashed": false
+      },
+      {
+        "source": "online",
+        "target": "api",
+        "label": "features",
+        "dashed": false
+      },
+      {
+        "source": "api",
+        "target": "modelo",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "modelo",
+        "target": "regra",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "rotulos",
+        "target": "treino",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "offline",
+        "target": "treino",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "treino",
+        "target": "registry",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "registry",
+        "target": "modelo",
+        "label": "deploy",
+        "dashed": true
+      },
+      {
+        "source": "api",
+        "target": "monitor",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "monitor",
+        "target": "alertas",
+        "label": "",
+        "dashed": false
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Modelo offline com rótulos",
+        "components": [
+          "offline",
+          "rotulos",
+          "treino",
+          "registry"
+        ],
+        "why": "Primeiro provar que existe sinal nos dados históricos.",
+        "done_when": "Modelo com PR-AUC registrado e validado fora do tempo (por período).",
+        "sources": []
+      },
+      {
+        "title": "Ingestão em streaming",
+        "components": [
+          "eventos",
+          "kafka"
+        ],
+        "why": "A decisão em tempo real depende do fluxo de eventos.",
+        "done_when": "Eventos chegam ao tópico com schema validado.",
+        "sources": []
+      },
+      {
+        "title": "Features em janela",
+        "components": [
+          "stream",
+          "online"
+        ],
+        "why": "As melhores features de fraude são contagens recentes.",
+        "done_when": "Features online iguais às offline para o mesmo instante (sem training-serving skew).",
+        "sources": []
+      },
+      {
+        "title": "API de decisão",
+        "components": [
+          "api",
+          "modelo",
+          "regra"
+        ],
+        "why": "Juntar features e modelo dentro do orçamento de latência.",
+        "done_when": "p95 abaixo de 50 ms em teste de carga e decisão com limiar por custo.",
+        "sources": []
+      },
+      {
+        "title": "Monitoramento",
+        "components": [
+          "monitor",
+          "alertas"
+        ],
+        "why": "Fraude muda de padrão rápido.",
+        "done_when": "Alertas para latência, taxa de bloqueio e drift das features.",
+        "sources": []
+      }
+    ],
+    "assumptions": [
+      "Chargebacks chegam semanas depois da transação."
+    ],
+    "risks": [
+      "Training-serving skew entre features online e offline.",
+      "Vazamento temporal no treino se o join não for point-in-time."
+    ]
+  }
+}

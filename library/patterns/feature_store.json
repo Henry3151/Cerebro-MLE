@@ -1,0 +1,309 @@
+{
+  "id": "feature_store",
+  "name": "Plataforma de Feature Store (offline + online) com governança",
+  "when_to_use": "Vários modelos reaproveitam as mesmas features; é preciso calcular uma vez, versionar, servir igual no treino e na inferência e evitar vazamento temporal.",
+  "tags": [
+    "feature store",
+    "feast",
+    "point-in-time",
+    "offline store",
+    "online store",
+    "governança de features",
+    "feature pipeline",
+    "reuso de features",
+    "training-serving skew"
+  ],
+  "origin": "autoral: baseado no conteúdo de Arquitetura de Feature Store da grade",
+  "phases": [
+    "fase2_big_data",
+    "fase3_cloud_mlops"
+  ],
+  "architecture": {
+    "title": "Feature Store para múltiplos modelos",
+    "summary": "Features definidas uma vez, calculadas em lote e em streaming, guardadas em armazenamento offline (treino) e online (inferência), com validação, catálogo e monitoramento.",
+    "stages": [
+      {
+        "id": "fontes",
+        "title": "Fontes"
+      },
+      {
+        "id": "pipelines",
+        "title": "Feature pipelines"
+      },
+      {
+        "id": "armazenamento",
+        "title": "Armazenamento"
+      },
+      {
+        "id": "consumo",
+        "title": "Consumo"
+      },
+      {
+        "id": "governanca",
+        "title": "Governança"
+      }
+    ],
+    "components": [
+      {
+        "id": "transacionais",
+        "label": "Bancos transacionais",
+        "kind": "external",
+        "stage": "fontes",
+        "tools": [
+          "PostgreSQL",
+          "AWS RDS"
+        ]
+      },
+      {
+        "id": "eventos",
+        "label": "Eventos",
+        "kind": "external",
+        "stage": "fontes",
+        "tools": [
+          "Kafka"
+        ]
+      },
+      {
+        "id": "batch",
+        "label": "Pipeline batch",
+        "kind": "process",
+        "stage": "pipelines",
+        "tools": [
+          "Spark",
+          "Airflow"
+        ]
+      },
+      {
+        "id": "streaming",
+        "label": "Pipeline streaming",
+        "kind": "process",
+        "stage": "pipelines",
+        "tools": [
+          "Flink",
+          "Spark Streaming"
+        ]
+      },
+      {
+        "id": "validacao",
+        "label": "Validação de features",
+        "kind": "decision",
+        "stage": "pipelines",
+        "tools": [
+          "Great Expectations",
+          "Pandera"
+        ]
+      },
+      {
+        "id": "offline",
+        "label": "Offline store\nhistórico",
+        "kind": "datastore",
+        "stage": "armazenamento",
+        "tools": [
+          "S3",
+          "Delta Lake",
+          "Parquet"
+        ]
+      },
+      {
+        "id": "online",
+        "label": "Online store\núltimo valor",
+        "kind": "datastore",
+        "stage": "armazenamento",
+        "tools": [
+          "Redis",
+          "DynamoDB"
+        ]
+      },
+      {
+        "id": "pit",
+        "label": "Point-in-time join\ndataset de treino",
+        "kind": "process",
+        "stage": "consumo",
+        "tools": [
+          "Feast"
+        ]
+      },
+      {
+        "id": "treino",
+        "label": "Treino de modelos",
+        "kind": "model",
+        "stage": "consumo",
+        "tools": []
+      },
+      {
+        "id": "inferencia",
+        "label": "Inferência online",
+        "kind": "service",
+        "stage": "consumo",
+        "tools": [
+          "FastAPI"
+        ]
+      },
+      {
+        "id": "catalogo",
+        "label": "Catálogo e registro\nde features",
+        "kind": "document",
+        "stage": "governanca",
+        "tools": [
+          "Feast registry"
+        ]
+      },
+      {
+        "id": "monitor",
+        "label": "Monitoramento\nfrescor · drift",
+        "kind": "monitor",
+        "stage": "governanca",
+        "tools": [
+          "Evidently",
+          "Prometheus"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "transacionais",
+        "target": "batch",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "eventos",
+        "target": "streaming",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "batch",
+        "target": "validacao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "streaming",
+        "target": "validacao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "validacao",
+        "target": "offline",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "validacao",
+        "target": "online",
+        "label": "materializa",
+        "dashed": false
+      },
+      {
+        "source": "offline",
+        "target": "pit",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "pit",
+        "target": "treino",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "online",
+        "target": "inferencia",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "catalogo",
+        "target": "pit",
+        "label": "definições",
+        "dashed": true
+      },
+      {
+        "source": "catalogo",
+        "target": "inferencia",
+        "label": "definições",
+        "dashed": true
+      },
+      {
+        "source": "offline",
+        "target": "monitor",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "online",
+        "target": "monitor",
+        "label": "",
+        "dashed": false
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Definições de features e catálogo",
+        "components": [
+          "catalogo"
+        ],
+        "why": "Uma definição única evita duas versões da mesma feature.",
+        "done_when": "Features documentadas com dono, entidade, tipo e janela.",
+        "sources": []
+      },
+      {
+        "title": "Pipeline batch e offline store",
+        "components": [
+          "transacionais",
+          "batch",
+          "validacao",
+          "offline"
+        ],
+        "why": "O histórico é a base do treino.",
+        "done_when": "Tabela histórica com timestamp de evento validada.",
+        "sources": []
+      },
+      {
+        "title": "Dataset de treino sem vazamento",
+        "components": [
+          "pit",
+          "treino"
+        ],
+        "why": "Join point-in-time garante que o modelo só veja o passado.",
+        "done_when": "Dataset reproduzível a partir de uma lista de entidades e datas.",
+        "sources": []
+      },
+      {
+        "title": "Online store e inferência",
+        "components": [
+          "online",
+          "inferencia"
+        ],
+        "why": "Servir os mesmos valores com baixa latência.",
+        "done_when": "Valor online igual ao offline para o mesmo instante.",
+        "sources": []
+      },
+      {
+        "title": "Streaming",
+        "components": [
+          "eventos",
+          "streaming"
+        ],
+        "why": "Features de janela curta precisam de cálculo contínuo.",
+        "done_when": "Atraso entre evento e feature disponível dentro do SLA.",
+        "sources": []
+      },
+      {
+        "title": "Monitoramento",
+        "components": [
+          "monitor"
+        ],
+        "why": "Feature desatualizada ou com drift derruba o modelo.",
+        "done_when": "Alertas de frescor e drift por feature.",
+        "sources": []
+      }
+    ],
+    "assumptions": [],
+    "risks": [
+      "Custo de manter online store para features pouco usadas."
+    ]
+  }
+}

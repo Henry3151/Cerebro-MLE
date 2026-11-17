@@ -1,0 +1,242 @@
+{
+  "id": "recomendacao_embeddings",
+  "name": "Sistema de recomendação com embeddings e MLOps reprodutível",
+  "when_to_use": "Recomendar itens a usuários a partir de interações (visualizações, cliques, compras) com pipeline reproduzível, comparação com baseline e promoção de modelo.",
+  "tags": [
+    "recomendação",
+    "sistema de recomendação",
+    "embeddings",
+    "filtragem colaborativa",
+    "dvc",
+    "mlflow",
+    "model registry",
+    "e-commerce",
+    "ranking"
+  ],
+  "origin": "projeto: github.com/Henry3151/recomendador-ecommerce",
+  "phases": [
+    "fase1_produtizacao",
+    "fase3_cloud_mlops"
+  ],
+  "architecture": {
+    "title": "Recomendador de produtos com embeddings",
+    "summary": "Interações versionadas com DVC, modelo de embeddings comparado a baseline e promovido no MLflow Model Registry, com recomendações servidas em lote ou por API.",
+    "stages": [
+      {
+        "id": "dados",
+        "title": "Dados"
+      },
+      {
+        "id": "modelagem",
+        "title": "Modelagem"
+      },
+      {
+        "id": "entrega",
+        "title": "Entrega"
+      }
+    ],
+    "components": [
+      {
+        "id": "eventos",
+        "label": "Eventos de interação",
+        "kind": "datastore",
+        "stage": "dados",
+        "tools": [
+          "DVC"
+        ]
+      },
+      {
+        "id": "prep",
+        "label": "Preparação\nmatriz usuário × item",
+        "kind": "process",
+        "stage": "dados",
+        "tools": [
+          "pandas"
+        ]
+      },
+      {
+        "id": "split",
+        "label": "Divisão temporal",
+        "kind": "process",
+        "stage": "dados",
+        "tools": []
+      },
+      {
+        "id": "baseline",
+        "label": "Baseline\npopularidade",
+        "kind": "model",
+        "stage": "modelagem",
+        "tools": []
+      },
+      {
+        "id": "embeddings",
+        "label": "Modelo de embeddings",
+        "kind": "model",
+        "stage": "modelagem",
+        "tools": [
+          "PyTorch"
+        ]
+      },
+      {
+        "id": "avaliacao",
+        "label": "Avaliação de ranking\nPrecision@K · NDCG",
+        "kind": "decision",
+        "stage": "modelagem",
+        "tools": []
+      },
+      {
+        "id": "registry",
+        "label": "MLflow Registry",
+        "kind": "datastore",
+        "stage": "modelagem",
+        "tools": [
+          "MLflow"
+        ]
+      },
+      {
+        "id": "recs",
+        "label": "Recomendações\nem lote ou API",
+        "kind": "service",
+        "stage": "entrega",
+        "tools": [
+          "FastAPI"
+        ]
+      },
+      {
+        "id": "card",
+        "label": "Model Card",
+        "kind": "document",
+        "stage": "entrega",
+        "tools": []
+      },
+      {
+        "id": "pipeline",
+        "label": "Pipeline DVC\nreprodutível",
+        "kind": "process",
+        "stage": "entrega",
+        "tools": [
+          "DVC",
+          "Docker"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "eventos",
+        "target": "prep",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "prep",
+        "target": "split",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "split",
+        "target": "baseline",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "split",
+        "target": "embeddings",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "baseline",
+        "target": "avaliacao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "embeddings",
+        "target": "avaliacao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "avaliacao",
+        "target": "registry",
+        "label": "promove",
+        "dashed": false
+      },
+      {
+        "source": "registry",
+        "target": "recs",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "registry",
+        "target": "card",
+        "label": "",
+        "dashed": true
+      },
+      {
+        "source": "pipeline",
+        "target": "prep",
+        "label": "orquestra",
+        "dashed": true
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Dados versionados",
+        "components": [
+          "eventos",
+          "pipeline"
+        ],
+        "why": "Reprodutibilidade começa nos dados.",
+        "done_when": "dvc repro recria tudo do zero.",
+        "sources": []
+      },
+      {
+        "title": "Preparação e divisão temporal",
+        "components": [
+          "prep",
+          "split"
+        ],
+        "why": "Avaliar como se fosse o futuro.",
+        "done_when": "Teste contém só interações posteriores ao treino.",
+        "sources": []
+      },
+      {
+        "title": "Baseline",
+        "components": [
+          "baseline"
+        ],
+        "why": "Popularidade é um baseline difícil de bater.",
+        "done_when": "Métricas de ranking do baseline registradas.",
+        "sources": []
+      },
+      {
+        "title": "Modelo de embeddings",
+        "components": [
+          "embeddings",
+          "avaliacao"
+        ],
+        "why": "Aprender preferências individuais.",
+        "done_when": "Supera o baseline em NDCG ou Precision@K.",
+        "sources": []
+      },
+      {
+        "title": "Promoção e entrega",
+        "components": [
+          "registry",
+          "recs",
+          "card"
+        ],
+        "why": "Só o melhor modelo vai para uso.",
+        "done_when": "Modelo promovido com Model Card publicado.",
+        "sources": []
+      }
+    ],
+    "assumptions": [],
+    "risks": [
+      "Sinal implícito fraco (só visualizações) favorece o baseline; tratar como ranking implícito."
+    ]
+  }
+}

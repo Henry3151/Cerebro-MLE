@@ -1,0 +1,347 @@
+{
+  "id": "classificacao_texto_mlops",
+  "name": "Classificação de texto servida em API com ONNX, retreino orquestrado e monitoramento",
+  "when_to_use": "Classificar documentos ou textos (laudos, chamados, e-mails, reclamações) com baixa latência, retreinar com segurança e observar o serviço em produção. Bom para NLP clássico em produção.",
+  "tags": [
+    "nlp",
+    "classificação de texto",
+    "tf-idf",
+    "onnx",
+    "fastapi",
+    "airflow",
+    "prometheus",
+    "grafana",
+    "ci/cd",
+    "docker",
+    "quality gate",
+    "saúde",
+    "baixa latência"
+  ],
+  "origin": "projeto: github.com/Henry3151/triagem-laudos-mlops",
+  "phases": [
+    "fase1_produtizacao",
+    "fase3_cloud_mlops",
+    "fase4_monitoring_security"
+  ],
+  "architecture": {
+    "title": "Classificação de laudos por urgência em produção",
+    "summary": "Modelo de texto leve, otimizado em ONNX, servido por API em Docker, com retreino orquestrado por quality gate e observabilidade com Prometheus e Grafana.",
+    "stages": [
+      {
+        "id": "dados",
+        "title": "Dados"
+      },
+      {
+        "id": "treino",
+        "title": "Treino e validação"
+      },
+      {
+        "id": "servico",
+        "title": "Serviço"
+      },
+      {
+        "id": "operacao",
+        "title": "Operação"
+      },
+      {
+        "id": "entrega",
+        "title": "Entrega contínua"
+      }
+    ],
+    "components": [
+      {
+        "id": "textos",
+        "label": "Laudos versionados",
+        "kind": "datastore",
+        "stage": "dados",
+        "tools": [
+          "CSV",
+          "Git LFS"
+        ]
+      },
+      {
+        "id": "contrato",
+        "label": "Contrato de dados",
+        "kind": "decision",
+        "stage": "dados",
+        "tools": [
+          "Pandera"
+        ]
+      },
+      {
+        "id": "normalizacao",
+        "label": "Normalização de texto",
+        "kind": "process",
+        "stage": "dados",
+        "tools": []
+      },
+      {
+        "id": "modelo",
+        "label": "TF-IDF + Random Forest",
+        "kind": "model",
+        "stage": "treino",
+        "tools": [
+          "scikit-learn"
+        ]
+      },
+      {
+        "id": "gate",
+        "label": "Quality gate\nrecall urgente ≥ 0,85",
+        "kind": "decision",
+        "stage": "treino",
+        "tools": []
+      },
+      {
+        "id": "onnx",
+        "label": "Exportação ONNX\n+ teste de paridade",
+        "kind": "process",
+        "stage": "treino",
+        "tools": [
+          "skl2onnx"
+        ]
+      },
+      {
+        "id": "artefatos",
+        "label": "Artefatos versionados\nmodelo + metadata",
+        "kind": "datastore",
+        "stage": "treino",
+        "tools": []
+      },
+      {
+        "id": "cliente",
+        "label": "Sistema clínico",
+        "kind": "external",
+        "stage": "servico",
+        "tools": []
+      },
+      {
+        "id": "api",
+        "label": "API FastAPI\n/predict",
+        "kind": "service",
+        "stage": "servico",
+        "tools": [
+          "FastAPI",
+          "Pydantic"
+        ]
+      },
+      {
+        "id": "runtime",
+        "label": "ONNX Runtime",
+        "kind": "model",
+        "stage": "servico",
+        "tools": [
+          "onnxruntime"
+        ]
+      },
+      {
+        "id": "dag",
+        "label": "DAG Airflow\nretreino",
+        "kind": "process",
+        "stage": "operacao",
+        "tools": [
+          "Apache Airflow"
+        ]
+      },
+      {
+        "id": "prometheus",
+        "label": "Métricas Prometheus",
+        "kind": "monitor",
+        "stage": "operacao",
+        "tools": [
+          "Prometheus"
+        ]
+      },
+      {
+        "id": "grafana",
+        "label": "Dashboard Grafana",
+        "kind": "monitor",
+        "stage": "operacao",
+        "tools": [
+          "Grafana"
+        ]
+      },
+      {
+        "id": "ci",
+        "label": "GitHub Actions\nlint · testes · build",
+        "kind": "process",
+        "stage": "entrega",
+        "tools": [
+          "GitHub Actions",
+          "ruff",
+          "pytest"
+        ]
+      },
+      {
+        "id": "imagem",
+        "label": "Imagem Docker\nmulti-stage",
+        "kind": "process",
+        "stage": "entrega",
+        "tools": [
+          "Docker"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "textos",
+        "target": "contrato",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "contrato",
+        "target": "normalizacao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "normalizacao",
+        "target": "modelo",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "modelo",
+        "target": "gate",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "gate",
+        "target": "onnx",
+        "label": "aprovado",
+        "dashed": false
+      },
+      {
+        "source": "onnx",
+        "target": "artefatos",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "artefatos",
+        "target": "runtime",
+        "label": "carrega",
+        "dashed": false
+      },
+      {
+        "source": "cliente",
+        "target": "api",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "api",
+        "target": "runtime",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "api",
+        "target": "prometheus",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "prometheus",
+        "target": "grafana",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "dag",
+        "target": "modelo",
+        "label": "retreina",
+        "dashed": true
+      },
+      {
+        "source": "ci",
+        "target": "imagem",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "imagem",
+        "target": "api",
+        "label": "deploy",
+        "dashed": true
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Dados e contrato",
+        "components": [
+          "textos",
+          "contrato",
+          "normalizacao"
+        ],
+        "why": "O modelo só é tão bom quanto o texto que entra.",
+        "done_when": "Base versionada, validada e normalizada de forma idêntica no treino e na API.",
+        "sources": []
+      },
+      {
+        "title": "Modelo com métrica de negócio",
+        "components": [
+          "modelo",
+          "gate"
+        ],
+        "why": "A métrica que importa (recall da classe crítica) decide a aprovação.",
+        "done_when": "Modelo passa no quality gate e as métricas ficam registradas.",
+        "sources": []
+      },
+      {
+        "title": "Otimização para produção",
+        "components": [
+          "onnx",
+          "artefatos"
+        ],
+        "why": "Latência baixa e artefato pequeno antes de servir.",
+        "done_when": "Previsões em ONNX iguais às do scikit-learn dentro da tolerância.",
+        "sources": []
+      },
+      {
+        "title": "API e container",
+        "components": [
+          "api",
+          "runtime",
+          "imagem"
+        ],
+        "why": "Expor o modelo de forma reproduzível.",
+        "done_when": "Container sobe, responde /health e /predict e passa no smoke test.",
+        "sources": []
+      },
+      {
+        "title": "Integração contínua",
+        "components": [
+          "ci"
+        ],
+        "why": "Toda mudança precisa ser verificada automaticamente.",
+        "done_when": "Pipeline roda lint, testes com cobertura mínima e build da imagem.",
+        "sources": []
+      },
+      {
+        "title": "Observabilidade",
+        "components": [
+          "prometheus",
+          "grafana"
+        ],
+        "why": "Saber se o serviço está saudável e como as classes se distribuem.",
+        "done_when": "Dashboard com latência p95, volume e distribuição das previsões.",
+        "sources": []
+      },
+      {
+        "title": "Retreino orquestrado",
+        "components": [
+          "dag"
+        ],
+        "why": "Retreinar sem trabalho manual e sem promover modelo pior.",
+        "done_when": "DAG treina, compara com o atual e só promove se passar no gate.",
+        "sources": []
+      }
+    ],
+    "assumptions": [],
+    "risks": [
+      "Texto real costuma ter mais ruído que o de treino; monitorar a distribuição das classes."
+    ]
+  }
+}

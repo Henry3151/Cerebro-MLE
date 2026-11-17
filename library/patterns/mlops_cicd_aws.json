@@ -1,0 +1,276 @@
+{
+  "id": "mlops_cicd_aws",
+  "name": "Esteira MLOps na AWS: CI/CD, registro, aprovação e deploy gradual",
+  "when_to_use": "Levar modelos do repositório à produção na nuvem de forma automatizada e auditável: testes, build, treino gerenciado, registro, aprovação, deploy em etapas e monitoramento com retreino.",
+  "tags": [
+    "mlops",
+    "ci/cd",
+    "aws",
+    "sagemaker",
+    "ecr",
+    "docker",
+    "model registry",
+    "deploy canário",
+    "cloudwatch",
+    "step functions",
+    "github actions",
+    "retreino automático",
+    "cloud"
+  ],
+  "origin": "autoral: baseado em Cloud and MLOps da grade",
+  "phases": [
+    "fase3_cloud_mlops",
+    "fase4_monitoring_security"
+  ],
+  "architecture": {
+    "title": "Esteira MLOps na AWS",
+    "summary": "Cada mudança passa por CI, gera imagem versionada, treina em ambiente gerenciado, registra o modelo, exige aprovação e vai para produção em etapas, com monitoramento que dispara retreino.",
+    "stages": [
+      {
+        "id": "codigo",
+        "title": "Código e CI"
+      },
+      {
+        "id": "treinamento",
+        "title": "Treino"
+      },
+      {
+        "id": "deploy",
+        "title": "Deploy"
+      },
+      {
+        "id": "operacao",
+        "title": "Operação"
+      }
+    ],
+    "components": [
+      {
+        "id": "repo",
+        "label": "Repositório Git",
+        "kind": "datastore",
+        "stage": "codigo",
+        "tools": [
+          "GitHub"
+        ]
+      },
+      {
+        "id": "ci",
+        "label": "CI\nlint · testes",
+        "kind": "process",
+        "stage": "codigo",
+        "tools": [
+          "GitHub Actions"
+        ]
+      },
+      {
+        "id": "ecr",
+        "label": "Imagem versionada",
+        "kind": "datastore",
+        "stage": "codigo",
+        "tools": [
+          "Docker",
+          "Amazon ECR"
+        ]
+      },
+      {
+        "id": "dados",
+        "label": "Dados de treino",
+        "kind": "datastore",
+        "stage": "treinamento",
+        "tools": [
+          "S3"
+        ]
+      },
+      {
+        "id": "treino",
+        "label": "Treino gerenciado",
+        "kind": "model",
+        "stage": "treinamento",
+        "tools": [
+          "SageMaker Training",
+          "Step Functions"
+        ]
+      },
+      {
+        "id": "registry",
+        "label": "Model Registry",
+        "kind": "datastore",
+        "stage": "treinamento",
+        "tools": [
+          "SageMaker Model Registry",
+          "MLflow"
+        ]
+      },
+      {
+        "id": "aprovacao",
+        "label": "Aprovação\nmétricas + revisão",
+        "kind": "decision",
+        "stage": "deploy",
+        "tools": []
+      },
+      {
+        "id": "staging",
+        "label": "Endpoint staging",
+        "kind": "service",
+        "stage": "deploy",
+        "tools": [
+          "SageMaker Endpoint"
+        ]
+      },
+      {
+        "id": "producao",
+        "label": "Produção\ncanário → 100%",
+        "kind": "service",
+        "stage": "deploy",
+        "tools": [
+          "SageMaker Endpoint",
+          "API Gateway"
+        ]
+      },
+      {
+        "id": "monitor",
+        "label": "Monitoramento\nlatência · drift",
+        "kind": "monitor",
+        "stage": "operacao",
+        "tools": [
+          "CloudWatch",
+          "SageMaker Model Monitor"
+        ]
+      },
+      {
+        "id": "gatilho",
+        "label": "Gatilho de retreino",
+        "kind": "decision",
+        "stage": "operacao",
+        "tools": [
+          "EventBridge"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "repo",
+        "target": "ci",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "ci",
+        "target": "ecr",
+        "label": "build",
+        "dashed": false
+      },
+      {
+        "source": "ecr",
+        "target": "treino",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "dados",
+        "target": "treino",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "treino",
+        "target": "registry",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "registry",
+        "target": "aprovacao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "aprovacao",
+        "target": "staging",
+        "label": "aprovado",
+        "dashed": false
+      },
+      {
+        "source": "staging",
+        "target": "producao",
+        "label": "smoke ok",
+        "dashed": false
+      },
+      {
+        "source": "producao",
+        "target": "monitor",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "monitor",
+        "target": "gatilho",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "gatilho",
+        "target": "treino",
+        "label": "retreina",
+        "dashed": true
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "CI e imagem versionada",
+        "components": [
+          "repo",
+          "ci",
+          "ecr"
+        ],
+        "why": "Base de qualquer automação.",
+        "done_when": "Push gera imagem testada com tag do commit.",
+        "sources": []
+      },
+      {
+        "title": "Treino reproduzível",
+        "components": [
+          "dados",
+          "treino",
+          "registry"
+        ],
+        "why": "Treinar igual sempre e registrar o resultado.",
+        "done_when": "Modelo registrado com dados, código e métricas rastreáveis.",
+        "sources": []
+      },
+      {
+        "title": "Aprovação e staging",
+        "components": [
+          "aprovacao",
+          "staging"
+        ],
+        "why": "Ninguém promove modelo sem critério.",
+        "done_when": "Promoção exige métricas mínimas e aprovação registrada.",
+        "sources": []
+      },
+      {
+        "title": "Produção gradual",
+        "components": [
+          "producao"
+        ],
+        "why": "Limitar o impacto de um modelo ruim.",
+        "done_when": "Canário com rollback automático.",
+        "sources": []
+      },
+      {
+        "title": "Monitoramento e retreino",
+        "components": [
+          "monitor",
+          "gatilho"
+        ],
+        "why": "Fechar o ciclo.",
+        "done_when": "Drift ou queda de métrica dispara retreino.",
+        "sources": []
+      }
+    ],
+    "assumptions": [],
+    "risks": [
+      "Custo de endpoints ociosos; usar escala automática ou serverless."
+    ]
+  }
+}

@@ -1,0 +1,279 @@
+{
+  "id": "rag_llm_assistente",
+  "name": "Assistente com IA Generativa (RAG) sobre documentos próprios",
+  "when_to_use": "Responder perguntas ou gerar conteúdo com base em documentos internos, citando as fontes, com avaliação de qualidade, guardrails e controle de custo e latência.",
+  "tags": [
+    "ia generativa",
+    "llm",
+    "rag",
+    "embeddings",
+    "banco vetorial",
+    "chatbot",
+    "langchain",
+    "ollama",
+    "guardrails",
+    "avaliação de llm",
+    "documentos"
+  ],
+  "origin": "autoral: baseado em Generative AI e NLP da grade",
+  "phases": [
+    "fase3_cloud_mlops"
+  ],
+  "architecture": {
+    "title": "Assistente RAG sobre documentos",
+    "summary": "Documentos são divididos em trechos, transformados em embeddings e indexados; a cada pergunta os trechos relevantes alimentam o LLM, que responde citando as fontes.",
+    "stages": [
+      {
+        "id": "indexacao",
+        "title": "Indexação"
+      },
+      {
+        "id": "consulta",
+        "title": "Consulta"
+      },
+      {
+        "id": "qualidade",
+        "title": "Qualidade e operação"
+      }
+    ],
+    "components": [
+      {
+        "id": "docs",
+        "label": "Documentos",
+        "kind": "datastore",
+        "stage": "indexacao",
+        "tools": [
+          "PDF",
+          "Markdown"
+        ]
+      },
+      {
+        "id": "extracao",
+        "label": "Extração e limpeza",
+        "kind": "process",
+        "stage": "indexacao",
+        "tools": [
+          "pypdf"
+        ]
+      },
+      {
+        "id": "chunking",
+        "label": "Divisão em trechos",
+        "kind": "process",
+        "stage": "indexacao",
+        "tools": []
+      },
+      {
+        "id": "embed",
+        "label": "Modelo de embeddings",
+        "kind": "model",
+        "stage": "indexacao",
+        "tools": [
+          "bge-m3",
+          "Ollama"
+        ]
+      },
+      {
+        "id": "vetores",
+        "label": "Banco vetorial",
+        "kind": "datastore",
+        "stage": "indexacao",
+        "tools": [
+          "Chroma",
+          "pgvector",
+          "FAISS"
+        ]
+      },
+      {
+        "id": "usuario",
+        "label": "Usuário",
+        "kind": "external",
+        "stage": "consulta",
+        "tools": []
+      },
+      {
+        "id": "api",
+        "label": "API do assistente",
+        "kind": "service",
+        "stage": "consulta",
+        "tools": [
+          "FastAPI",
+          "Streamlit"
+        ]
+      },
+      {
+        "id": "busca",
+        "label": "Busca dos trechos\nrelevantes",
+        "kind": "process",
+        "stage": "consulta",
+        "tools": []
+      },
+      {
+        "id": "llm",
+        "label": "LLM",
+        "kind": "model",
+        "stage": "consulta",
+        "tools": [
+          "Ollama",
+          "Claude"
+        ]
+      },
+      {
+        "id": "guardrails",
+        "label": "Guardrails\nfontes · formato",
+        "kind": "decision",
+        "stage": "consulta",
+        "tools": []
+      },
+      {
+        "id": "avaliacao",
+        "label": "Avaliação\nperguntas de teste",
+        "kind": "document",
+        "stage": "qualidade",
+        "tools": []
+      },
+      {
+        "id": "monitor",
+        "label": "Custo · latência\nfeedback",
+        "kind": "monitor",
+        "stage": "qualidade",
+        "tools": [
+          "Prometheus"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "docs",
+        "target": "extracao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "extracao",
+        "target": "chunking",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "chunking",
+        "target": "embed",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "embed",
+        "target": "vetores",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "usuario",
+        "target": "api",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "api",
+        "target": "busca",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "vetores",
+        "target": "busca",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "busca",
+        "target": "llm",
+        "label": "contexto",
+        "dashed": false
+      },
+      {
+        "source": "llm",
+        "target": "guardrails",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "guardrails",
+        "target": "api",
+        "label": "resposta",
+        "dashed": false
+      },
+      {
+        "source": "avaliacao",
+        "target": "llm",
+        "label": "regressão",
+        "dashed": true
+      },
+      {
+        "source": "api",
+        "target": "monitor",
+        "label": "",
+        "dashed": false
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Indexação",
+        "components": [
+          "docs",
+          "extracao",
+          "chunking",
+          "embed",
+          "vetores"
+        ],
+        "why": "Sem bons trechos, o LLM inventa.",
+        "done_when": "Busca retorna o trecho certo para perguntas de teste.",
+        "sources": []
+      },
+      {
+        "title": "Conjunto de avaliação",
+        "components": [
+          "avaliacao"
+        ],
+        "why": "Medir antes de otimizar.",
+        "done_when": "30 a 50 perguntas com resposta esperada.",
+        "sources": []
+      },
+      {
+        "title": "Geração com contexto",
+        "components": [
+          "busca",
+          "llm"
+        ],
+        "why": "Responder apoiado nas fontes.",
+        "done_when": "Respostas citam o trecho usado.",
+        "sources": []
+      },
+      {
+        "title": "Guardrails",
+        "components": [
+          "guardrails"
+        ],
+        "why": "Evitar respostas sem fonte ou fora do formato.",
+        "done_when": "Sem fonte, o assistente diz que não sabe.",
+        "sources": []
+      },
+      {
+        "title": "Interface e operação",
+        "components": [
+          "usuario",
+          "api",
+          "monitor"
+        ],
+        "why": "Uso real e controle de custo.",
+        "done_when": "Latência e custo por pergunta medidos.",
+        "sources": []
+      }
+    ],
+    "assumptions": [],
+    "risks": [
+      "Alucinação quando o contexto não cobre a pergunta.",
+      "Dados sensíveis enviados a LLM externo."
+    ]
+  }
+}

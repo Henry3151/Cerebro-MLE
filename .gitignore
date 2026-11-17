@@ -1,0 +1,18 @@
+# Ambiente
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.env
+
+# Conteúdo de terceiros e dados gerados: nunca vão para o Git
+data/aulas/**
+!data/aulas/LEIA-ME.md
+!data/aulas/*/
+!data/aulas/*/.gitkeep
+data/repos/**
+!data/repos/LEIA-ME.md
+data/index/
+outputs/

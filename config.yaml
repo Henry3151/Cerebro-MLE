@@ -1,0 +1,44 @@
+# Configuração do Cérebro MLE
+# Caminhos relativos são resolvidos a partir da pasta do projeto.
+
+retrieval:
+  k_default: 8          # trechos devolvidos por busca
+  max_per_file: 2       # no máximo N trechos do mesmo arquivo, para variar as fontes
+
+chunking:
+  chunk_chars: 1200
+  overlap_chars: 200
+
+paths:
+  index_dir: data/index
+  outputs_dir: outputs
+  patterns_dir: library/patterns
+
+# Fontes da base de conhecimento.
+# private: true = conteúdo de terceiros, só para uso pessoal (a pasta está no .gitignore).
+sources:
+  - name: Aulas da Pós-Tech (uso pessoal)
+    path: data/aulas
+    type: aula
+    private: true
+    include: ["*.pdf", "*.md", "*.txt"]
+  - name: Notas próprias
+    path: data/notas
+    type: nota
+    private: false
+    include: ["*.md", "*.txt"]
+  - name: Repositórios
+    path: data/repos
+    type: projeto
+    private: false
+    include: ["*.md", "*.yaml", "*.yml", "*.toml", "Dockerfile", "src/**/*.py", "*/src/**/*.py", "dags/**/*.py"]
+    exclude: [".git/**", ".venv/**", "data/**", "reports/**", "node_modules/**", "**/__pycache__/**",
+              "mlruns/**", "**/.pytest_cache/**", "estrutura.txt", "uv.lock", "dvc.lock", "*_OLD.py", "docs/superpowers/**"]
+
+# Repositórios clonados/atualizados por "cerebro repos"
+repos:
+  - https://github.com/Henry3151/driftguard-credit-mlops
+  - https://github.com/Henry3151/Fintech-Risk-Framework
+  - https://github.com/Henry3151/triagem-laudos-mlops
+  - https://github.com/Henry3151/Churn_Prediction_Advanced_Models_Optimized
+  - https://github.com/Henry3151/recomendador-ecommerce

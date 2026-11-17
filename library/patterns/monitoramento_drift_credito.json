@@ -1,0 +1,462 @@
+{
+  "id": "monitoramento_drift_credito",
+  "name": "Monitoramento de modelo de crédito com drift, alertas e retreino governado",
+  "when_to_use": "Modelo já em produção que pode degradar em silêncio: detectar dados ruins, data drift e concept drift, alertar, explicar a causa e decidir entre recalibrar, aplicar regra temporária ou retreinar com guardrails. Serve para crédito, fraude, churn e qualquer modelo com rótulo atrasado e exigência de governança (LGPD).",
+  "tags": [
+    "monitoramento",
+    "drift",
+    "concept drift",
+    "data drift",
+    "credit scoring",
+    "contrato de dados",
+    "lgpd",
+    "fairness",
+    "alertas",
+    "retreino",
+    "champion challenger",
+    "observabilidade",
+    "governança"
+  ],
+  "origin": "projeto: github.com/Henry3151/driftguard-credit-mlops",
+  "phases": [
+    "fase3_cloud_mlops",
+    "fase4_monitoring_security"
+  ],
+  "architecture": {
+    "title": "Monitoramento de modelo de crédito em produção",
+    "summary": "Camada de confiabilidade em volta do modelo: barra dados ruins, detecta drift nos dados e no conceito, torna tudo observável e só promove um novo modelo que passe nos guardrails.",
+    "stages": [
+      {
+        "id": "qualidade",
+        "title": "Qualidade dos dados"
+      },
+      {
+        "id": "modelo",
+        "title": "Modelo"
+      },
+      {
+        "id": "drift",
+        "title": "Drift"
+      },
+      {
+        "id": "observabilidade",
+        "title": "Observabilidade"
+      },
+      {
+        "id": "resposta",
+        "title": "Resposta e governança"
+      }
+    ],
+    "components": [
+      {
+        "id": "fonte",
+        "label": "Fonte de dados",
+        "kind": "datastore",
+        "stage": "qualidade",
+        "tools": [
+          "Parquet",
+          "Data Lake"
+        ]
+      },
+      {
+        "id": "contrato",
+        "label": "Contrato de dados\nPandera",
+        "kind": "decision",
+        "stage": "qualidade",
+        "tools": [
+          "Pandera",
+          "YAML"
+        ]
+      },
+      {
+        "id": "quarentena",
+        "label": "Quarentena",
+        "kind": "datastore",
+        "stage": "qualidade",
+        "tools": []
+      },
+      {
+        "id": "pseudonimizacao",
+        "label": "Pseudonimização\nminimização LGPD",
+        "kind": "process",
+        "stage": "qualidade",
+        "tools": [
+          "HMAC-SHA256"
+        ]
+      },
+      {
+        "id": "gate_features",
+        "label": "Gate de features",
+        "kind": "decision",
+        "stage": "qualidade",
+        "tools": [
+          "Pandera"
+        ]
+      },
+      {
+        "id": "referencia",
+        "label": "Base de referência",
+        "kind": "datastore",
+        "stage": "modelo",
+        "tools": []
+      },
+      {
+        "id": "treino",
+        "label": "XGBoost\nlimiar por custo",
+        "kind": "model",
+        "stage": "modelo",
+        "tools": [
+          "XGBoost",
+          "scikit-learn"
+        ]
+      },
+      {
+        "id": "registry",
+        "label": "MLflow Registry\nchampion",
+        "kind": "datastore",
+        "stage": "modelo",
+        "tools": [
+          "MLflow"
+        ]
+      },
+      {
+        "id": "producao",
+        "label": "Dados de produção\njanelas mensais",
+        "kind": "datastore",
+        "stage": "drift",
+        "tools": []
+      },
+      {
+        "id": "gates_prod",
+        "label": "Gates 1-3\nna produção",
+        "kind": "decision",
+        "stage": "drift",
+        "tools": [
+          "Pandera"
+        ]
+      },
+      {
+        "id": "drift_stats",
+        "label": "PSI · KS/χ² + BH\nMMD · ADWIN",
+        "kind": "monitor",
+        "stage": "drift",
+        "tools": [
+          "SciPy",
+          "river",
+          "Evidently"
+        ]
+      },
+      {
+        "id": "relatorios",
+        "label": "Relatórios Evidently",
+        "kind": "document",
+        "stage": "drift",
+        "tools": [
+          "Evidently"
+        ]
+      },
+      {
+        "id": "logs",
+        "label": "Logs JSON\ntrace_id",
+        "kind": "monitor",
+        "stage": "observabilidade",
+        "tools": [
+          "logging",
+          "OpenTelemetry"
+        ]
+      },
+      {
+        "id": "metricas",
+        "label": "Métricas Prometheus",
+        "kind": "monitor",
+        "stage": "observabilidade",
+        "tools": [
+          "prometheus-client"
+        ]
+      },
+      {
+        "id": "alertas",
+        "label": "Alertas P1/P2/P3\n+ runbook",
+        "kind": "monitor",
+        "stage": "observabilidade",
+        "tools": []
+      },
+      {
+        "id": "dashboard",
+        "label": "Dashboard 3 níveis",
+        "kind": "service",
+        "stage": "observabilidade",
+        "tools": [
+          "HTML",
+          "Grafana"
+        ]
+      },
+      {
+        "id": "politica",
+        "label": "Política de resposta\nem camadas",
+        "kind": "decision",
+        "stage": "resposta",
+        "tools": []
+      },
+      {
+        "id": "challenger",
+        "label": "Retreino challenger\n+ guardrails",
+        "kind": "model",
+        "stage": "resposta",
+        "tools": [
+          "XGBoost",
+          "MLflow"
+        ]
+      },
+      {
+        "id": "causal",
+        "label": "Análise causal\ncovariate × concept",
+        "kind": "process",
+        "stage": "resposta",
+        "tools": []
+      },
+      {
+        "id": "auditoria",
+        "label": "Atributos sensíveis\nauditoria",
+        "kind": "datastore",
+        "stage": "resposta",
+        "tools": []
+      },
+      {
+        "id": "fairness",
+        "label": "Fairness\nregra 4/5",
+        "kind": "monitor",
+        "stage": "resposta",
+        "tools": []
+      }
+    ],
+    "edges": [
+      {
+        "source": "fonte",
+        "target": "contrato",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "contrato",
+        "target": "quarentena",
+        "label": "inválido",
+        "dashed": false
+      },
+      {
+        "source": "contrato",
+        "target": "pseudonimizacao",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "pseudonimizacao",
+        "target": "gate_features",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "gate_features",
+        "target": "referencia",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "referencia",
+        "target": "treino",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "treino",
+        "target": "registry",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "registry",
+        "target": "producao",
+        "label": "predições",
+        "dashed": false
+      },
+      {
+        "source": "producao",
+        "target": "gates_prod",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "gates_prod",
+        "target": "drift_stats",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "drift_stats",
+        "target": "relatorios",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "drift_stats",
+        "target": "alertas",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "logs",
+        "target": "dashboard",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "metricas",
+        "target": "dashboard",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "alertas",
+        "target": "dashboard",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "drift_stats",
+        "target": "politica",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "politica",
+        "target": "challenger",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "challenger",
+        "target": "registry",
+        "label": "promove",
+        "dashed": false
+      },
+      {
+        "source": "drift_stats",
+        "target": "causal",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "gate_features",
+        "target": "auditoria",
+        "label": "",
+        "dashed": true
+      },
+      {
+        "source": "auditoria",
+        "target": "fairness",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "fairness",
+        "target": "challenger",
+        "label": "guardrail",
+        "dashed": true
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Contrato de dados e quarentena",
+        "components": [
+          "fonte",
+          "contrato",
+          "quarentena"
+        ],
+        "why": "Sem dados confiáveis, qualquer métrica de drift vira ruído.",
+        "done_when": "Um lote defeituoso é bloqueado e as linhas inválidas vão para a quarentena com o motivo.",
+        "sources": []
+      },
+      {
+        "title": "Privacidade desde a entrada",
+        "components": [
+          "pseudonimizacao",
+          "gate_features",
+          "auditoria"
+        ],
+        "why": "Dados pessoais precisam sair do fluxo antes de qualquer treino ou log.",
+        "done_when": "Nenhum identificador direto aparece em features, logs ou relatórios.",
+        "sources": []
+      },
+      {
+        "title": "Modelo base e registro",
+        "components": [
+          "referencia",
+          "treino",
+          "registry"
+        ],
+        "why": "O monitoramento compara a produção com uma referência e um modelo conhecidos.",
+        "done_when": "Modelo registrado como champion com métricas, hash dos dados e limiar por custo.",
+        "sources": []
+      },
+      {
+        "title": "Observabilidade mínima",
+        "components": [
+          "logs",
+          "metricas"
+        ],
+        "why": "Antes de detectar drift, cada execução precisa deixar rastro.",
+        "done_when": "Cada estágio emite log estruturado com trace_id e métricas de duração e volume.",
+        "sources": []
+      },
+      {
+        "title": "Detecção de drift",
+        "components": [
+          "producao",
+          "gates_prod",
+          "drift_stats",
+          "relatorios"
+        ],
+        "why": "Com referência e produção separadas, já dá para medir mudança.",
+        "done_when": "Drift aparece nas variáveis alteradas e não aparece nas variáveis de controle.",
+        "sources": []
+      },
+      {
+        "title": "Alertas e dashboard",
+        "components": [
+          "alertas",
+          "dashboard"
+        ],
+        "why": "Detectar sem avisar ninguém não muda nada.",
+        "done_when": "Alertas com prioridade, deduplicação e runbook; dashboard executivo, gestão e analítico.",
+        "sources": []
+      },
+      {
+        "title": "Resposta governada",
+        "components": [
+          "politica",
+          "challenger",
+          "fairness"
+        ],
+        "why": "Com drift confirmado, escolher a resposta proporcional e segura.",
+        "done_when": "Challenger só é promovido se passar em AUC, calibração, custo e fairness.",
+        "sources": []
+      },
+      {
+        "title": "Análise de causa",
+        "components": [
+          "causal"
+        ],
+        "why": "Explicar se a perda veio de mudança de população ou de conceito orienta a correção.",
+        "done_when": "Relatório separa o efeito de covariate shift do efeito de concept drift.",
+        "sources": []
+      }
+    ],
+    "assumptions": [
+      "Rótulos (inadimplência) chegam com atraso de alguns meses."
+    ],
+    "risks": [
+      "Retreinar com rótulos ainda incompletos gera viés de sobrevivência.",
+      "Fairness pode piorar depois do drift; medir por janela, não só no treino."
+    ]
+  }
+}

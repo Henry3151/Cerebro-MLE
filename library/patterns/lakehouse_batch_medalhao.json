@@ -1,0 +1,315 @@
+{
+  "id": "lakehouse_batch_medalhao",
+  "name": "Lakehouse em camadas (bronze, prata, ouro) para analytics e ML em lote",
+  "when_to_use": "Consolidar dados de várias fontes em um data lake confiável para BI e para modelos em lote: ingestão, camadas de qualidade, catálogo, consultas SQL e tabelas de features.",
+  "tags": [
+    "lakehouse",
+    "data lake",
+    "data warehouse",
+    "medalhão",
+    "bronze prata ouro",
+    "delta lake",
+    "iceberg",
+    "databricks",
+    "spark",
+    "aws glue",
+    "athena",
+    "s3",
+    "airflow",
+    "batch",
+    "dbt",
+    "bi"
+  ],
+  "origin": "autoral: baseado em Big Data Storage Structures e Big Data Cloud Platforms da grade",
+  "phases": [
+    "fase2_big_data",
+    "fase3_cloud_mlops"
+  ],
+  "architecture": {
+    "title": "Lakehouse em camadas para BI e ML",
+    "summary": "Dados brutos preservados na camada bronze, limpos e conformados na prata e agregados para negócio e features na ouro, com catálogo único e orquestração.",
+    "stages": [
+      {
+        "id": "fontes",
+        "title": "Fontes"
+      },
+      {
+        "id": "ingestao",
+        "title": "Ingestão"
+      },
+      {
+        "id": "lakehouse",
+        "title": "Lakehouse"
+      },
+      {
+        "id": "consumo",
+        "title": "Consumo"
+      },
+      {
+        "id": "plataforma",
+        "title": "Plataforma"
+      }
+    ],
+    "components": [
+      {
+        "id": "sistemas",
+        "label": "Sistemas de origem",
+        "kind": "external",
+        "stage": "fontes",
+        "tools": [
+          "PostgreSQL",
+          "APIs",
+          "arquivos"
+        ]
+      },
+      {
+        "id": "ingest",
+        "label": "Jobs de ingestão",
+        "kind": "process",
+        "stage": "ingestao",
+        "tools": [
+          "AWS Glue",
+          "Spark"
+        ]
+      },
+      {
+        "id": "bronze",
+        "label": "Bronze\ndado bruto",
+        "kind": "datastore",
+        "stage": "lakehouse",
+        "tools": [
+          "S3",
+          "Delta Lake"
+        ]
+      },
+      {
+        "id": "qualidade",
+        "label": "Testes de qualidade",
+        "kind": "decision",
+        "stage": "lakehouse",
+        "tools": [
+          "dbt tests",
+          "Great Expectations"
+        ]
+      },
+      {
+        "id": "prata",
+        "label": "Prata\nlimpo e conformado",
+        "kind": "datastore",
+        "stage": "lakehouse",
+        "tools": [
+          "Delta Lake",
+          "Iceberg"
+        ]
+      },
+      {
+        "id": "ouro",
+        "label": "Ouro\nmétricas e features",
+        "kind": "datastore",
+        "stage": "lakehouse",
+        "tools": [
+          "Delta Lake"
+        ]
+      },
+      {
+        "id": "transform",
+        "label": "Transformações SQL",
+        "kind": "process",
+        "stage": "lakehouse",
+        "tools": [
+          "dbt",
+          "Spark SQL"
+        ]
+      },
+      {
+        "id": "sql",
+        "label": "Consultas SQL",
+        "kind": "service",
+        "stage": "consumo",
+        "tools": [
+          "Athena",
+          "Databricks SQL",
+          "Redshift"
+        ]
+      },
+      {
+        "id": "bi",
+        "label": "Dashboards BI",
+        "kind": "monitor",
+        "stage": "consumo",
+        "tools": [
+          "Power BI"
+        ]
+      },
+      {
+        "id": "ml",
+        "label": "Treino em lote",
+        "kind": "model",
+        "stage": "consumo",
+        "tools": [
+          "Spark ML",
+          "MLflow"
+        ]
+      },
+      {
+        "id": "catalogo",
+        "label": "Catálogo de dados",
+        "kind": "document",
+        "stage": "plataforma",
+        "tools": [
+          "Glue Data Catalog",
+          "Unity Catalog"
+        ]
+      },
+      {
+        "id": "orquestracao",
+        "label": "Orquestração",
+        "kind": "process",
+        "stage": "plataforma",
+        "tools": [
+          "Apache Airflow"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "sistemas",
+        "target": "ingest",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "ingest",
+        "target": "bronze",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "bronze",
+        "target": "qualidade",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "qualidade",
+        "target": "prata",
+        "label": "aprovado",
+        "dashed": false
+      },
+      {
+        "source": "prata",
+        "target": "transform",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "transform",
+        "target": "ouro",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "ouro",
+        "target": "sql",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "sql",
+        "target": "bi",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "ouro",
+        "target": "ml",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "catalogo",
+        "target": "sql",
+        "label": "metadados",
+        "dashed": true
+      },
+      {
+        "source": "orquestracao",
+        "target": "ingest",
+        "label": "agenda",
+        "dashed": true
+      },
+      {
+        "source": "orquestracao",
+        "target": "transform",
+        "label": "agenda",
+        "dashed": true
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Ingestão para a bronze",
+        "components": [
+          "sistemas",
+          "ingest",
+          "bronze"
+        ],
+        "why": "Guardar o dado bruto permite reprocessar tudo depois.",
+        "done_when": "Cargas incrementais idempotentes particionadas por data.",
+        "sources": []
+      },
+      {
+        "title": "Catálogo",
+        "components": [
+          "catalogo"
+        ],
+        "why": "Sem catálogo ninguém encontra nem confia nos dados.",
+        "done_when": "Tabelas registradas com schema e dono.",
+        "sources": []
+      },
+      {
+        "title": "Prata com qualidade",
+        "components": [
+          "qualidade",
+          "prata"
+        ],
+        "why": "Limpar e padronizar uma vez para todos.",
+        "done_when": "Testes de nulos, unicidade e domínio passando.",
+        "sources": []
+      },
+      {
+        "title": "Ouro e transformações",
+        "components": [
+          "transform",
+          "ouro"
+        ],
+        "why": "Modelos de negócio e features prontos para uso.",
+        "done_when": "Tabelas ouro documentadas e testadas.",
+        "sources": []
+      },
+      {
+        "title": "Consumo",
+        "components": [
+          "sql",
+          "bi",
+          "ml"
+        ],
+        "why": "Entregar valor para negócio e para modelos.",
+        "done_when": "Dashboard e treino lendo apenas da camada ouro.",
+        "sources": []
+      },
+      {
+        "title": "Orquestração",
+        "components": [
+          "orquestracao"
+        ],
+        "why": "Rodar tudo na ordem certa, com retentativas.",
+        "done_when": "DAG diária com alertas de falha e SLA.",
+        "sources": []
+      }
+    ],
+    "assumptions": [],
+    "risks": [
+      "Arquivos pequenos demais degradam performance; compactar periodicamente."
+    ]
+  }
+}

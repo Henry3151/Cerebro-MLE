@@ -1,0 +1,265 @@
+{
+  "id": "classificacao_tabular_api",
+  "name": "Classificação tabular ponta a ponta com baseline, MLflow e API",
+  "when_to_use": "Problema clássico de classificação em dados tabulares (churn, inadimplência, propensão, cobrança): limpar, validar, comparar com baseline, escolher o ponto de corte pelo custo do erro e servir via API.",
+  "tags": [
+    "classificação",
+    "tabular",
+    "churn",
+    "propensão",
+    "baseline",
+    "mlflow",
+    "fastapi",
+    "pandera",
+    "ponto de corte",
+    "custo do erro",
+    "validação cruzada"
+  ],
+  "origin": "projeto: github.com/Henry3151/Churn_Prediction_Advanced_Models_Optimized",
+  "phases": [
+    "fase1_produtizacao"
+  ],
+  "architecture": {
+    "title": "Previsão de churn com API",
+    "summary": "Pipeline sem vazamento de dados, comparação com baseline, rastreamento no MLflow e ponto de corte definido pelo custo de cada tipo de erro.",
+    "stages": [
+      {
+        "id": "dados",
+        "title": "Dados"
+      },
+      {
+        "id": "modelagem",
+        "title": "Modelagem"
+      },
+      {
+        "id": "servico",
+        "title": "Serviço"
+      }
+    ],
+    "components": [
+      {
+        "id": "brutos",
+        "label": "Dados brutos",
+        "kind": "datastore",
+        "stage": "dados",
+        "tools": [
+          "CSV"
+        ]
+      },
+      {
+        "id": "limpeza",
+        "label": "Limpeza e tipagem",
+        "kind": "process",
+        "stage": "dados",
+        "tools": [
+          "pandas"
+        ]
+      },
+      {
+        "id": "contrato",
+        "label": "Contrato de dados",
+        "kind": "decision",
+        "stage": "dados",
+        "tools": [
+          "Pandera"
+        ]
+      },
+      {
+        "id": "split",
+        "label": "Divisão estratificada\ntreino / teste",
+        "kind": "process",
+        "stage": "dados",
+        "tools": [
+          "scikit-learn"
+        ]
+      },
+      {
+        "id": "preproc",
+        "label": "Pré-processamento\najustado só no treino",
+        "kind": "process",
+        "stage": "modelagem",
+        "tools": [
+          "ColumnTransformer"
+        ]
+      },
+      {
+        "id": "baseline",
+        "label": "Baseline\nregressão logística",
+        "kind": "model",
+        "stage": "modelagem",
+        "tools": [
+          "scikit-learn"
+        ]
+      },
+      {
+        "id": "modelo",
+        "label": "Modelo principal\nCV 5-fold",
+        "kind": "model",
+        "stage": "modelagem",
+        "tools": [
+          "PyTorch",
+          "LightGBM"
+        ]
+      },
+      {
+        "id": "mlflow",
+        "label": "MLflow tracking",
+        "kind": "datastore",
+        "stage": "modelagem",
+        "tools": [
+          "MLflow"
+        ]
+      },
+      {
+        "id": "corte",
+        "label": "Ponto de corte\npor custo FN × FP",
+        "kind": "decision",
+        "stage": "modelagem",
+        "tools": []
+      },
+      {
+        "id": "api",
+        "label": "API FastAPI\n/predict",
+        "kind": "service",
+        "stage": "servico",
+        "tools": [
+          "FastAPI"
+        ]
+      },
+      {
+        "id": "testes",
+        "label": "Testes\nschema · smoke · API",
+        "kind": "process",
+        "stage": "servico",
+        "tools": [
+          "pytest"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": "brutos",
+        "target": "limpeza",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "limpeza",
+        "target": "contrato",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "contrato",
+        "target": "split",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "split",
+        "target": "preproc",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "preproc",
+        "target": "baseline",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "preproc",
+        "target": "modelo",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "baseline",
+        "target": "mlflow",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "modelo",
+        "target": "mlflow",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "modelo",
+        "target": "corte",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "corte",
+        "target": "api",
+        "label": "",
+        "dashed": false
+      },
+      {
+        "source": "testes",
+        "target": "api",
+        "label": "valida",
+        "dashed": true
+      }
+    ],
+    "roadmap": [
+      {
+        "title": "Limpeza e contrato",
+        "components": [
+          "brutos",
+          "limpeza",
+          "contrato"
+        ],
+        "why": "Erros de tipo e nulos escondidos quebram tudo depois.",
+        "done_when": "Base sem nulos inesperados e contrato passando.",
+        "sources": []
+      },
+      {
+        "title": "Divisão e pré-processamento",
+        "components": [
+          "split",
+          "preproc"
+        ],
+        "why": "Evitar vazamento de dados desde o início.",
+        "done_when": "Transformações ajustadas apenas no treino.",
+        "sources": []
+      },
+      {
+        "title": "Baseline",
+        "components": [
+          "baseline",
+          "mlflow"
+        ],
+        "why": "Sem baseline não dá para provar que o modelo aprende.",
+        "done_when": "Métricas do baseline registradas no MLflow.",
+        "sources": []
+      },
+      {
+        "title": "Modelo principal e ponto de corte",
+        "components": [
+          "modelo",
+          "corte"
+        ],
+        "why": "Superar o baseline e decidir pelo custo real.",
+        "done_when": "Modelo supera o baseline e o limiar minimiza o custo esperado.",
+        "sources": []
+      },
+      {
+        "title": "API e testes",
+        "components": [
+          "api",
+          "testes"
+        ],
+        "why": "Entregar o modelo de forma utilizável e verificada.",
+        "done_when": "API responde com probabilidade e decisão; testes passam.",
+        "sources": []
+      }
+    ],
+    "assumptions": [],
+    "risks": [
+      "Desbalanceamento de classes; usar PR-AUC e não só acurácia."
+    ]
+  }
+}

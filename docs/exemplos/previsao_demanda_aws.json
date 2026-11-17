@@ -1,0 +1,53 @@
+{
+ "title": "Previsão de demanda em lote na AWS com retreino automático",
+ "summary": "Job noturno em container lê os dados versionados, gera as previsões do dia seguinte e grava numa tabela consumida pelo negócio. Um pipeline separado retreina, compara com o modelo atual e só promove o melhor, com monitoramento de dados e de erro.",
+ "stages": [
+  {"id": "dados", "title": "Dados versionados"},
+  {"id": "treino", "title": "Treino e registro"},
+  {"id": "inferencia", "title": "Inferência em lote"},
+  {"id": "monitoramento", "title": "Monitoramento"},
+  {"id": "entrega", "title": "Entrega contínua"}
+ ],
+ "components": [
+  {"id": "vendas", "label": "Histórico de vendas", "kind": "external", "stage": "dados", "tools": ["RDS", "CSV"]},
+  {"id": "s3_raw", "label": "Data lake S3\nbruto", "kind": "datastore", "stage": "dados", "tools": ["S3"]},
+  {"id": "dvc", "label": "Versionamento de dados", "kind": "process", "stage": "dados", "tools": ["DVC"]},
+  {"id": "qualidade", "label": "Contrato de dados", "kind": "decision", "stage": "dados", "tools": ["Pandera"]},
+  {"id": "features", "label": "Features de calendário\ne defasagens", "kind": "process", "stage": "treino", "tools": ["pandas"]},
+  {"id": "treino", "label": "Treino com validação\ntemporal", "kind": "model", "stage": "treino", "tools": ["LightGBM", "scikit-learn"]},
+  {"id": "gate", "label": "Quality gate\nMAPE vs. modelo atual", "kind": "decision", "stage": "treino"},
+  {"id": "registry", "label": "MLflow Registry\nchampion", "kind": "datastore", "stage": "treino", "tools": ["MLflow"]},
+  {"id": "agenda", "label": "Agendamento noturno", "kind": "process", "stage": "inferencia", "tools": ["EventBridge", "Airflow"]},
+  {"id": "job", "label": "Job de previsão\nem container", "kind": "service", "stage": "inferencia", "tools": ["AWS Batch", "ECR"]},
+  {"id": "previsoes", "label": "Tabela de previsões", "kind": "datastore", "stage": "inferencia", "tools": ["S3", "Athena"]},
+  {"id": "negocio", "label": "Planejamento\nde estoque", "kind": "external", "stage": "inferencia"},
+  {"id": "drift", "label": "Drift dos dados\nPSI por feature", "kind": "monitor", "stage": "monitoramento", "tools": ["Evidently"]},
+  {"id": "erro_real", "label": "Erro real\nprevisto × vendido", "kind": "monitor", "stage": "monitoramento"},
+  {"id": "alertas", "label": "Alertas e logs", "kind": "monitor", "stage": "monitoramento", "tools": ["CloudWatch"]},
+  {"id": "gatilho", "label": "Gatilho de retreino", "kind": "decision", "stage": "monitoramento"},
+  {"id": "ci", "label": "CI: lint · testes · build", "kind": "process", "stage": "entrega", "tools": ["GitHub Actions"]},
+  {"id": "imagem", "label": "Imagem versionada", "kind": "datastore", "stage": "entrega", "tools": ["Docker", "ECR"]}
+ ],
+ "edges": [
+  {"source": "vendas", "target": "s3_raw"}, {"source": "s3_raw", "target": "dvc"}, {"source": "dvc", "target": "qualidade"},
+  {"source": "qualidade", "target": "features", "label": "aprovado"}, {"source": "features", "target": "treino"},
+  {"source": "treino", "target": "gate"}, {"source": "gate", "target": "registry", "label": "promove"},
+  {"source": "agenda", "target": "job", "label": "todo dia 2h"}, {"source": "registry", "target": "job", "label": "champion"},
+  {"source": "qualidade", "target": "job"}, {"source": "job", "target": "previsoes"}, {"source": "previsoes", "target": "negocio"},
+  {"source": "job", "target": "drift"}, {"source": "previsoes", "target": "erro_real"}, {"source": "vendas", "target": "erro_real", "label": "vendas reais", "dashed": true},
+  {"source": "drift", "target": "alertas"}, {"source": "erro_real", "target": "alertas"}, {"source": "alertas", "target": "gatilho"},
+  {"source": "gatilho", "target": "treino", "label": "retreina", "dashed": true},
+  {"source": "ci", "target": "imagem", "label": "build"}, {"source": "imagem", "target": "job", "label": "deploy", "dashed": true}
+ ],
+ "roadmap": [
+  {"title": "Dados versionados e contrato", "components": ["vendas", "s3_raw", "dvc", "qualidade"], "why": "Previsão de demanda depende de histórico confiável e reproduzível.", "done_when": "dvc repro recria a base e o contrato barra lotes com datas faltando ou vendas negativas.", "sources": ["F-f0a068"]},
+  {"title": "Modelo com validação temporal", "components": ["features", "treino"], "why": "Em séries temporais, validar com dados do futuro gera métricas falsas.", "done_when": "Backtest por janelas deslizantes supera o baseline ingênuo (mesmo dia da semana anterior).", "sources": []},
+  {"title": "Registro e quality gate", "components": ["gate", "registry"], "why": "Só o modelo melhor que o atual pode virar champion.", "done_when": "Modelo registrado com métricas, hash dos dados e alias champion.", "sources": ["F-ea648e"]},
+  {"title": "CI e imagem", "components": ["ci", "imagem"], "why": "O job de produção precisa ser o mesmo código testado.", "done_when": "Push gera imagem com tag do commit no ECR.", "sources": ["F-83f628"]},
+  {"title": "Job noturno na AWS", "components": ["agenda", "job", "previsoes", "negocio"], "why": "Previsões em lote são mais baratas e simples que uma API quando o consumo é diário.", "done_when": "Execução agendada grava as previsões e o negócio consulta pela Athena.", "sources": ["F-c4d41d", "F-66a1b7"]},
+  {"title": "Monitoramento", "components": ["drift", "erro_real", "alertas"], "why": "Demanda muda com sazonalidade e promoções.", "done_when": "Alertas para falha do job, drift acima do limite e MAPE acima da meta.", "sources": ["F-b6d20c"]},
+  {"title": "Retreino automático", "components": ["gatilho"], "why": "Fechar o ciclo sem trabalho manual.", "done_when": "Alerta de degradação dispara o pipeline de treino e o gate decide a promoção.", "sources": ["F-f859fe", "P-mlops_cicd_aws"]}
+ ],
+ "assumptions": ["As vendas reais chegam no dia seguinte, permitindo medir o erro diariamente."],
+ "risks": ["Feriados e promoções fora do histórico; incluir calendário de eventos.", "Custo do AWS Batch ocioso é baixo, mas falhas silenciosas no agendamento são o maior risco; alertar quando o job não roda."]
+}
